@@ -102,4 +102,12 @@ Here’s what each one does and why it’s included:
   Generate/parse UUIDs (v4 random or v7 time-ordered). Useful for request IDs, stream IDs, tenant IDs.  
   *Why:* Stable identifiers for logs, metrics, and cache keys.
 
+## 🚦 Continuous Integration (CI)
 
+- This repo uses GitHub Actions to run checks on every push and pull request:
+
+- Format: cargo fmt --all -- --check
+
+- Lint: cargo clippy --all-targets -- -D warnings
+
+- Test: cargo test --all --locked

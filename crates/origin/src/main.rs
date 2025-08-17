@@ -1,1 +1,3 @@
-fn main() { println!("Hello from origin"); }
+fn main() {
+    println!("Hello from origin");
+}
