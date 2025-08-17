@@ -4,3 +4,33 @@ members = [
   "crates/origin"
 ]
 resolver = "2"
+
+[profile.dev]
+# Fast edit-compile-run loop
+opt-level = 0            # fastest compile times
+debug = 1                # enough for useful backtraces
+incremental = true       # cache to speed subsequent builds
+overflow-checks = true   # catch arithmetic bugs during dev
+lto = "off"              # keep dev builds quick
+
+# (Optional) Make a few hot deps faster at runtime in dev without optimizing everything
+[profile.dev.package.tokio]
+opt-level = 2
+[profile.dev.package.hyper]
+opt-level = 2
+[profile.dev.package.reqwest]
+opt-level = 2
+
+[profile.release]
+# Ship build: smaller & faster binary, slower to compile
+opt-level = 3            # max optimization
+lto = "thin"             # good perf/size without huge link times
+codegen-units = 1        # better cross-crate optimization (slower builds)
+panic = "abort"          # smaller/faster; use "unwind" if you rely on unwinding/backtraces
+debug = 0                # set to 1 if you want minimal symbols for postmortems
+
+[profile.test]
+# Tests run under `cargo test` (separate from dev)
+opt-level = 0
+debug = 2                # fuller debug info helps when tests fail
+overflow-checks = true

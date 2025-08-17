@@ -1,4 +1,12 @@
-# Project structure
+## Dev quick start
+```bash
+cp .env.example .env
+cargo run -p api-gateway
+# or
+make run
+```
+
+## Project structure
 
 ```plaintext
 public-video-service/
@@ -13,7 +21,7 @@ public-video-service/
 │   ├── ingest-rtmp/            # Nginx-RTMP wrapper or Rust ingest stub
 │   │   ├── Dockerfile
 │   │   └── nginx.conf
-│   └── packager-hls/           # FFmpeg adapter (Day 1) or Rust packager (later)
+│   └── packager-hls/           # FFmpeg adapter 
 │       ├── Cargo.toml
 │       └── src/main.rs
 │
