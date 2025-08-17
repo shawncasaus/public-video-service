@@ -1,0 +1,6 @@
+[workspace]
+members = [
+  "crates/api-gateway",
+  "crates/origin"
+]
+resolver = "2"
