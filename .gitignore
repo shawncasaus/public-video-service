@@ -24,3 +24,64 @@ target
 
 # .vscode folder
 .vscode/
+
+# Configuration files (keep examples, ignore actual configs)
+config.toml
+config.toml.backup
+config.toml.bak
+
+# Test-specific configuration files
+config_test_*.toml
+test_config.toml
+
+# Log files
+*.log
+logs/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Coverage reports
+tarpaulin-report.html
+coverage/
+
+# IDE and editor files
+*.sublime-project
+*.sublime-workspace
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+
+# Rust specific
+# Cargo.lock should be committed for applications (not libraries)
+
+# Build artifacts
+dist/
+build/
+
+# Documentation build
+docs/_build/
+
+# Profiling data
+*.prof
+perf.data*
+
+# Benchmark results
+criterion/
+
+# Local development
+.local/
+local/

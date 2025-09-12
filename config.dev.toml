@@ -1,0 +1,90 @@
+# Development configuration for API Gateway
+# This file demonstrates all available configuration options
+# 
+# Configuration precedence: defaults < config.toml < environment variables (APP_*)
+# 
+# To use this config file, copy it to 'config.toml' or specify it via environment:
+# APP_CONFIG_FILE=config.dev.toml
+
+# =============================================================================
+# SERVER CONFIGURATION
+# =============================================================================
+
+# Host address to bind the server to
+# - Empty string ("") means bind to all interfaces (0.0.0.0)
+# - "127.0.0.1" means bind only to localhost (recommended for development)
+# - Specific IP address for production deployments
+host = "127.0.0.1"
+
+# Port number to listen on
+# - Must be between 1 and 65535
+# - Common development ports: 3000, 4000, 8080
+# - Avoid ports below 1024 (require root privileges)
+port = 3000
+
+# =============================================================================
+# REQUEST TIMEOUT CONFIGURATION
+# =============================================================================
+
+# Request timeout in milliseconds
+# - Must be between 1 and 300000ms (5 minutes)
+# - Applies to all incoming HTTP requests
+# - Too short: requests may timeout prematurely
+# - Too long: may cause resource exhaustion
+# - Recommended: 15000-30000ms for most applications
+request_timeout_ms = 30000
+
+# =============================================================================
+# UPSTREAM SERVICES CONFIGURATION
+# =============================================================================
+
+# Maps service names to their base URLs
+# Used for routing requests to backend services
+# 
+# Service names should be descriptive and consistent across environments
+# URLs must include protocol (http/https) and be accessible from the gateway
+[upstreams]
+# Local development services
+user_service = "http://localhost:3001"
+auth_service = "http://localhost:3002"
+video_service = "http://localhost:3003"
+
+# External service example (production-like)
+notification_service = "https://api.notifications.example.com"
+
+# =============================================================================
+# CORS (Cross-Origin Resource Sharing) CONFIGURATION
+# =============================================================================
+
+# List of allowed CORS origins for cross-origin requests
+# 
+# Security considerations:
+# - Use "*" only in development (allows all origins)
+# - In production, specify exact domains for security
+# - Include both HTTP and HTTPS versions if needed
+# - Consider subdomains (e.g., "https://*.example.com")
+cors_origins = [
+    # Development origins
+    "http://localhost:3000",
+    "http://localhost:8080", 
+    
+    # Production origins (examples)
+    "https://app.example.com",
+    "https://staging.example.com"
+]
+
+# Alternative CORS configuration for development (allow all origins)
+# WARNING: Only use in development! This is insecure for production.
+# cors_origins = ["*"]
+
+# =============================================================================
+# ENVIRONMENT VARIABLE OVERRIDES
+# =============================================================================
+# 
+# You can override any of these values using environment variables:
+# 
+# APP_HOST=0.0.0.0
+# APP_PORT=8080
+# APP_REQUEST_TIMEOUT_MS=60000
+# APP_CORS_ORIGINS='["https://production.example.com"]'
+# APP_UPSTREAMS='{"user_service": "https://user-service.prod.example.com"}'
