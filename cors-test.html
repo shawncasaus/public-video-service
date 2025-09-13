@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CORS Test - API Gateway</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .success { background-color: #d4edda; border-color: #c3e6cb; }
+        .error { background-color: #f8d7da; border-color: #f5c6cb; }
+        button { padding: 10px 15px; margin: 5px; background: #007bff; color: white; border: none; border-radius: 3px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        pre { background: #f8f9fa; padding: 10px; border-radius: 3px; overflow-x: auto; }
+        .log { max-height: 300px; overflow-y: auto; }
+    </style>
+</head>
+<body>
+    <h1>🌐 CORS Test for API Gateway</h1>
+    <p>This page tests CORS functionality by making requests from a different origin to the API Gateway.</p>
+    
+    <div class="test-section">
+        <h3>Server Configuration</h3>
+        <p><strong>API Gateway URL:</strong> <span id="server-url">http://localhost:3000</span></p>
+        <p><strong>Current Page Origin:</strong> <span id="current-origin">file://</span></p>
+        <p><strong>Expected CORS Behavior:</strong> Should allow requests from any origin (cors_origins: ["*"])</p>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Controls</h3>
+        <button onclick="testBasicRequest()">Test Basic GET Request</button>
+        <button onclick="testPostRequest()">Test POST Request</button>
+        <button onclick="testPreflightRequest()">Test OPTIONS Preflight</button>
+        <button onclick="testWithHeaders()">Test with Custom Headers</button>
+        <button onclick="clearLog()">Clear Log</button>
+    </div>
+
+    <div class="test-section">
+        <h3>Test Results</h3>
+        <div id="log" class="log"></div>
+    </div>
+
+    <script>
+        const serverUrl = 'http://localhost:3000';
+        const logElement = document.getElementById('log');
+        const currentOriginElement = document.getElementById('current-origin');
+        
+        // Set current origin
+        currentOriginElement.textContent = window.location.origin || 'file://';
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const logEntry = document.createElement('div');
+            logEntry.className = type;
+            logEntry.innerHTML = `<strong>[${timestamp}]</strong> ${message}`;
+            logElement.appendChild(logEntry);
+            logElement.scrollTop = logElement.scrollHeight;
+        }
+        
+        function clearLog() {
+            logElement.innerHTML = '';
+        }
+        
+        async function testBasicRequest() {
+            log('🔄 Testing basic GET request...', 'info');
+            try {
+                const response = await fetch(`${serverUrl}/`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const text = await response.text();
+                log(`✅ GET Request Success! Status: ${response.status}`, 'success');
+                log(`Response: ${text}`, 'info');
+                log(`Response Headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+            } catch (error) {
+                log(`❌ GET Request Failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testPostRequest() {
+            log('🔄 Testing POST request...', 'info');
+            try {
+                const response = await fetch(`${serverUrl}/`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token',
+                        'X-Request-Id': 'test-request-' + Date.now()
+                    },
+                    body: JSON.stringify({ test: 'data', timestamp: Date.now() })
+                });
+                
+                const text = await response.text();
+                log(`✅ POST Request Success! Status: ${response.status}`, 'success');
+                log(`Response: ${text}`, 'info');
+                log(`Response Headers: ${JSON.stringify([...response.headers.entries()])}`, 'info');
+            } catch (error) {
+                log(`❌ POST Request Failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testPreflightRequest() {
+            log('🔄 Testing OPTIONS preflight request...', 'info');
+            try {
+                const response = await fetch(`${serverUrl}/`, {
+                    method: 'OPTIONS',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer test-token',
+                        'X-Request-Id': 'preflight-test-' + Date.now(),
+                        'Access-Control-Request-Method': 'POST',
+                        'Access-Control-Request-Headers': 'Content-Type, Authorization, X-Request-Id'
+                    }
+                });
+                
+                log(`✅ OPTIONS Request Success! Status: ${response.status}`, 'success');
+                log(`CORS Headers: ${JSON.stringify([...response.headers.entries()].filter(([key]) => key.toLowerCase().startsWith('access-control')))}`, 'info');
+            } catch (error) {
+                log(`❌ OPTIONS Request Failed: ${error.message}`, 'error');
+            }
+        }
+        
+        async function testWithHeaders() {
+            log('🔄 Testing request with all allowed headers...', 'info');
+            try {
+                const response = await fetch(`${serverUrl}/healthz`, {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': 'Bearer demo-token',
+                        'X-Request-Id': 'header-test-' + Date.now()
+                    }
+                });
+                
+                const text = await response.text();
+                log(`✅ Headers Test Success! Status: ${response.status}`, 'success');
+                log(`Response: ${text}`, 'info');
+                
+                // Check if X-Request-Id is exposed
+                const requestId = response.headers.get('X-Request-Id');
+                if (requestId) {
+                    log(`✅ X-Request-Id exposed: ${requestId}`, 'success');
+                } else {
+                    log(`⚠️ X-Request-Id not found in response headers`, 'info');
+                }
+                
+            } catch (error) {
+                log(`❌ Headers Test Failed: ${error.message}`, 'error');
+            }
+        }
+        
+        // Auto-run basic test on page load
+        window.addEventListener('load', () => {
+            log('🚀 CORS Test Page Loaded', 'info');
+            log('Click the buttons above to test different CORS scenarios', 'info');
+        });
+    </script>
+</body>
+</html>

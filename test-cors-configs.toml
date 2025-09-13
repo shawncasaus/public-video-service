@@ -1,0 +1,16 @@
+# Test CORS Configuration - Specific Origins
+# This config tests CORS with specific allowed origins instead of wildcard
+
+host = "127.0.0.1"
+port = 3000
+request_timeout_ms = 15000
+
+# Test with specific origins (not wildcard)
+cors_origins = [
+    "http://localhost:8080",
+    "https://app.example.com",
+    "https://staging.example.com"
+]
+
+[upstreams]
+# Empty for testing

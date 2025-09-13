@@ -55,7 +55,13 @@ async fn main() -> Result<(), anyhow::Error> {
         // Allow all origins (development mode)
         CorsLayer::new()
             .allow_origin(Any)
-            .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+            .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+            .allow_headers([
+                axum::http::header::CONTENT_TYPE,
+                axum::http::header::AUTHORIZATION,
+                axum::http::HeaderName::from_static("x-request-id"),
+            ])
+            .expose_headers([axum::http::HeaderName::from_static("x-request-id")])
     } else {
         // Validate specific origins
         let origins: Result<Vec<_>, _> = cfg.cors_origins.iter()
@@ -63,7 +69,13 @@ async fn main() -> Result<(), anyhow::Error> {
             .collect();
         CorsLayer::new()
             .allow_origin(origins.map_err(|e| anyhow::anyhow!("Invalid CORS origin: {}", e))?)
-            .allow_methods([Method::GET, Method::POST, Method::PUT, Method::DELETE])
+            .allow_methods([Method::GET, Method::POST, Method::OPTIONS])
+            .allow_headers([
+                axum::http::header::CONTENT_TYPE,
+                axum::http::header::AUTHORIZATION,
+                axum::http::HeaderName::from_static("x-request-id"),
+            ])
+            .expose_headers([axum::http::HeaderName::from_static("x-request-id")])
     };
 
     // Build HTTP router with middleware
