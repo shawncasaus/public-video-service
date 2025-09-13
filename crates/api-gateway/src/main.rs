@@ -2,14 +2,16 @@ mod config;
 
 use crate::config::AppConfig;
 use axum::{
-    http::Method,
+    http::{Method, StatusCode},
+    response::{IntoResponse, Response},
     routing::get,
     Router,
+    Json,
 };
+use serde_json::json;
 use tower::ServiceBuilder;
 use tower_http::{
     cors::{Any, CorsLayer},
-    timeout::TimeoutLayer,
 };
 use tokio::net::TcpListener;
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
@@ -27,6 +29,75 @@ async fn root() -> &'static str {
 async fn health() -> &'static str {
     "ok"
 }
+
+/// Test endpoint that simulates a slow response for timeout testing
+async fn slow_endpoint() -> Result<&'static str, ServiceError> {
+    tokio::time::sleep(tokio::time::Duration::from_secs(20)).await;
+    Ok("This should never be reached due to timeout")
+}
+
+/// Wrapper function that applies timeout to any async function
+async fn with_timeout<F, T>(duration: std::time::Duration, future: F) -> Result<T, ServiceError>
+where
+    F: std::future::Future<Output = T>,
+{
+    tokio::time::timeout(duration, future)
+        .await
+        .map_err(|_| ServiceError::Timeout(tower::timeout::error::Elapsed::new()))
+}
+
+// ============================================================================
+// Error Handling
+// ============================================================================
+
+/// Custom error type for handling various service errors
+#[derive(Debug)]
+pub enum ServiceError {
+    Timeout(tower::timeout::error::Elapsed),
+    Other(Box<dyn std::error::Error + Send + Sync>),
+}
+
+impl IntoResponse for ServiceError {
+    fn into_response(self) -> Response {
+        match self {
+            ServiceError::Timeout(err) => {
+                tracing::warn!("Request timed out: {}", err);
+                
+                let error_response = json!({
+                    "error": "Gateway Timeout",
+                    "message": "The request timed out",
+                    "status": 504
+                });
+                
+                (StatusCode::GATEWAY_TIMEOUT, Json(error_response)).into_response()
+            }
+            ServiceError::Other(err) => {
+                tracing::error!("Service error: {}", err);
+                
+                let error_response = json!({
+                    "error": "Internal Server Error",
+                    "message": "An internal error occurred",
+                    "status": 500
+                });
+                
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
+            }
+        }
+    }
+}
+
+impl From<tower::timeout::error::Elapsed> for ServiceError {
+    fn from(err: tower::timeout::error::Elapsed) -> Self {
+        ServiceError::Timeout(err)
+    }
+}
+
+impl From<Box<dyn std::error::Error + Send + Sync>> for ServiceError {
+    fn from(err: Box<dyn std::error::Error + Send + Sync>) -> Self {
+        ServiceError::Other(err)
+    }
+}
+
 
 // ============================================================================
 // Application Setup
@@ -82,9 +153,14 @@ async fn main() -> Result<(), anyhow::Error> {
     let app = Router::new()
         .route("/", get(root))
         .route("/healthz", get(health))
+        .route("/slow", get({
+            let timeout_duration = cfg.timeout_duration();
+            move || async move { 
+                with_timeout(timeout_duration, slow_endpoint()).await 
+            }
+        }))
         .layer(
             ServiceBuilder::new()
-                .layer(TimeoutLayer::new(cfg.timeout_duration()))
                 .layer(cors_layer)
         );
 
