@@ -85,3 +85,5 @@ criterion/
 # Local development
 .local/
 local/
+
+.cursor/
