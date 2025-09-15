@@ -1,19 +1,15 @@
-mod config;
-
-use crate::config::AppConfig;
+use api_gateway::config::AppConfig;
+use api_gateway::request_id_middleware;
 use axum::{
     http::{Method, StatusCode},
     response::{IntoResponse, Response},
     routing::get,
-    Router,
-    Json,
+    Json, Router,
 };
 use serde_json::json;
-use tower::ServiceBuilder;
-use tower_http::{
-    cors::{Any, CorsLayer},
-};
 use tokio::net::TcpListener;
+use tower::ServiceBuilder;
+use tower_http::cors::{Any, CorsLayer};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 // ============================================================================
@@ -62,24 +58,24 @@ impl IntoResponse for ServiceError {
         match self {
             ServiceError::Timeout(err) => {
                 tracing::warn!("Request timed out: {}", err);
-                
+
                 let error_response = json!({
                     "error": "Gateway Timeout",
                     "message": "The request timed out",
                     "status": 504
                 });
-                
+
                 (StatusCode::GATEWAY_TIMEOUT, Json(error_response)).into_response()
             }
             ServiceError::Other(err) => {
                 tracing::error!("Service error: {}", err);
-                
+
                 let error_response = json!({
                     "error": "Internal Server Error",
                     "message": "An internal error occurred",
                     "status": 500
                 });
-                
+
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(error_response)).into_response()
             }
         }
@@ -98,13 +94,12 @@ impl From<Box<dyn std::error::Error + Send + Sync>> for ServiceError {
     }
 }
 
-
 // ============================================================================
 // Application Setup
 // ============================================================================
 
 /// Main entry point for the API Gateway service
-/// 
+///
 /// Initializes logging, loads configuration, sets up middleware, and starts the server.
 /// Supports hierarchical configuration: defaults < config.toml < environment variables.
 #[tokio::main]
@@ -118,7 +113,7 @@ async fn main() -> Result<(), anyhow::Error> {
     // Load and validate configuration
     let cfg = AppConfig::load().map_err(|e| anyhow::anyhow!("Config error: {}", e))?;
     tracing::info!(?cfg, "loaded config");
-    
+
     let addr = cfg.addr();
 
     // Configure CORS middleware
@@ -135,7 +130,9 @@ async fn main() -> Result<(), anyhow::Error> {
             .expose_headers([axum::http::HeaderName::from_static("x-request-id")])
     } else {
         // Validate specific origins
-        let origins: Result<Vec<_>, _> = cfg.cors_origins.iter()
+        let origins: Result<Vec<_>, _> = cfg
+            .cors_origins
+            .iter()
             .map(|origin| origin.parse())
             .collect();
         CorsLayer::new()
@@ -153,25 +150,24 @@ async fn main() -> Result<(), anyhow::Error> {
     let app = Router::new()
         .route("/", get(root))
         .route("/healthz", get(health))
-        .route("/slow", get({
-            let timeout_duration = cfg.timeout_duration();
-            move || async move { 
-                with_timeout(timeout_duration, slow_endpoint()).await 
-            }
-        }))
-        .layer(
-            ServiceBuilder::new()
-                .layer(cors_layer)
-        );
+        .route(
+            "/slow",
+            get({
+                let timeout_duration = cfg.timeout_duration();
+                move || async move { with_timeout(timeout_duration, slow_endpoint()).await }
+            }),
+        )
+        .layer(axum::middleware::from_fn(request_id_middleware))
+        .layer(ServiceBuilder::new().layer(cors_layer));
 
     // Start server
     let listener = TcpListener::bind(&addr).await?;
-    
+
     tracing::info!("listening on http://{}", listener.local_addr()?);
     tracing::info!("CORS origins: {:?}", cfg.cors_origins);
     tracing::info!("Request timeout: {}ms", cfg.request_timeout_ms);
     tracing::info!("Upstream services: {:?}", cfg.upstreams);
-    
+
     axum::serve(listener, app).await?;
     Ok(())
 }
