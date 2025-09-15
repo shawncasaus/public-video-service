@@ -4,7 +4,7 @@ use thiserror::Error;
 use url::Url;
 
 /// Application configuration for the API Gateway service.
-/// 
+///
 /// Supports hierarchical configuration loading with precedence:
 /// defaults < config file < environment variables
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -12,19 +12,19 @@ pub struct AppConfig {
     /// Server bind address (empty = all interfaces)
     #[serde(default = "default_host")]
     pub host: String,
-    
+
     /// Server port (1-65535)
     #[serde(default = "default_port")]
     pub port: u16,
-    
+
     /// Request timeout in milliseconds (1-300000)
     #[serde(default = "default_timeout_ms")]
     pub request_timeout_ms: u64,
-    
+
     /// Upstream service mappings (service_name -> URL)
     #[serde(default = "default_upstreams")]
     pub upstreams: HashMap<String, String>,
-    
+
     /// Allowed CORS origins (use ["*"] for all)
     #[serde(default = "default_cors_origins")]
     pub cors_origins: Vec<String>,
@@ -51,23 +51,23 @@ pub enum ConfigError {
     /// Configuration file or environment parsing error
     #[error(transparent)]
     Config(#[from] ::config::ConfigError),
-    
+
     /// Generic configuration error with message
     #[error("Configuration error: {0}")]
     Message(String),
-    
+
     /// Port number validation error (must be 1-65535)
     #[error("Invalid port number: {0}. Must be between 1 and 65535")]
     InvalidPort(u16),
-    
+
     /// Request timeout validation error (must be 1-300000ms)
     #[error("Invalid timeout: {0}ms. Must be between 1 and 300000ms (5 minutes)")]
     InvalidTimeout(u64),
-    
+
     /// Upstream URL validation error
     #[error("Invalid upstream URL for service '{0}': {1}")]
     InvalidUpstreamUrl(String, String),
-    
+
     /// CORS origin validation error
     #[error("Invalid CORS origin: {0}")]
     InvalidCorsOrigin(String),
@@ -103,13 +103,13 @@ fn default_cors_origins() -> Vec<String> {
 
 impl AppConfig {
     /// Load configuration with precedence: defaults < file < environment variables
-    /// 
+    ///
     /// # Returns
     /// - `Ok(AppConfig)` - Successfully loaded and validated configuration
     /// - `Err(ConfigError)` - Configuration loading or validation failed
     pub fn load() -> Result<Self, ConfigError> {
         let _ = dotenvy::dotenv();
-        
+
         let cfg = ::config::Config::builder()
             .set_default("host", default_host())?
             .set_default("port", default_port())?
@@ -126,16 +126,16 @@ impl AppConfig {
     }
 
     /// Load configuration from a specific file path (primarily for testing)
-    /// 
+    ///
     /// # Arguments
     /// - `config_path` - Path to the configuration file
-    /// 
+    ///
     /// # Returns
     /// - `Ok(AppConfig)` - Successfully loaded and validated configuration
     /// - `Err(ConfigError)` - Configuration loading or validation failed
     pub fn load_from_file(config_path: &str) -> Result<Self, ConfigError> {
         let _ = dotenvy::dotenv();
-        
+
         let cfg = ::config::Config::builder()
             .set_default("host", default_host())?
             .set_default("port", default_port())?
@@ -167,16 +167,16 @@ impl AppConfig {
             if let Err(e) = Url::parse(url_str) {
                 return Err(ConfigError::InvalidUpstreamUrl(
                     service_name.clone(),
-                    format!("Invalid URL format: {}", e)
+                    format!("Invalid URL format: {}", e),
                 ));
             }
-            
+
             // Check for valid scheme (http/https)
             if let Ok(url) = Url::parse(url_str) {
                 if !matches!(url.scheme(), "http" | "https") {
                     return Err(ConfigError::InvalidUpstreamUrl(
                         service_name.clone(),
-                        "URL must use http or https scheme".to_string()
+                        "URL must use http or https scheme".to_string(),
                     ));
                 }
             }
@@ -186,16 +186,17 @@ impl AppConfig {
         for origin in &raw.cors_origins {
             if origin.is_empty() {
                 return Err(ConfigError::InvalidCorsOrigin(
-                    "CORS origin cannot be empty".to_string()
+                    "CORS origin cannot be empty".to_string(),
                 ));
             }
-            
+
             // Allow "*" or validate as URL
             if origin != "*" {
                 if let Err(e) = Url::parse(origin) {
-                    return Err(ConfigError::InvalidCorsOrigin(
-                        format!("Invalid origin URL: {}", e)
-                    ));
+                    return Err(ConfigError::InvalidCorsOrigin(format!(
+                        "Invalid origin URL: {}",
+                        e
+                    )));
                 }
             }
         }
@@ -216,7 +217,7 @@ impl AppConfig {
 
 impl AppConfig {
     /// Get server address in "host:port" format
-    /// 
+    ///
     /// Returns "0.0.0.0:port" when host is empty (bind to all interfaces)
     pub fn addr(&self) -> String {
         if self.host.is_empty() {
@@ -232,10 +233,10 @@ impl AppConfig {
     }
 
     /// Get upstream URL for a service name
-    /// 
+    ///
     /// # Arguments
     /// - `service_name` - Name of the upstream service
-    /// 
+    ///
     /// # Returns
     /// - `Some(&String)` - URL of the service if found
     /// - `None` - Service not configured

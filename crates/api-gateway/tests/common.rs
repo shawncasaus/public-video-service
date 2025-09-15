@@ -1,12 +1,6 @@
-use axum::{
-    http::Method,
-    routing::get,
-    Router,
-};
+use axum::{http::Method, routing::get, Router};
 use tower::ServiceBuilder;
-use tower_http::{
-    cors::{Any, CorsLayer},
-};
+use tower_http::cors::{Any, CorsLayer};
 
 /// Root endpoint for testing
 async fn root() -> &'static str {
@@ -35,11 +29,8 @@ pub fn create_test_app() -> Router {
     Router::new()
         .route("/", get(root))
         .route("/healthz", get(health))
-        .layer(axum::middleware::from_fn(api_gateway::request_id_middleware))
-        .layer(
-            ServiceBuilder::new()
-                .layer(cors_layer)
-        )
+        .layer(axum::middleware::from_fn(
+            api_gateway::request_id_middleware,
+        ))
+        .layer(ServiceBuilder::new().layer(cors_layer))
 }
-
-// The request_id_middleware is now accessible via api_gateway::request_id_middleware

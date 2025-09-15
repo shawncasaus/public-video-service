@@ -1,15 +1,10 @@
 pub mod config;
 
-use axum::{
-    extract::Request,
-    http::HeaderName,
-    middleware::Next,
-    response::Response,
-};
+use axum::{extract::Request, http::HeaderName, middleware::Next, response::Response};
 use uuid::Uuid;
 
 /// Request ID middleware that ensures every request has a unique x-request-id header
-/// 
+///
 /// - Preserves client-provided x-request-id if present
 /// - Generates new UUIDv4 if missing
 /// - Stores ID in request extensions for downstream access
