@@ -21,6 +21,9 @@ pub async fn request_id_middleware(mut request: Request, next: Next) -> Response
     // Store in request extensions for downstream access
     request.extensions_mut().insert(request_id.clone());
 
+    // Add request_id to the current tracing span for trace middleware
+    tracing::Span::current().record("request_id", &request_id);
+
     // Log the request ID for tracing
     tracing::info!("Processing request with ID: {}", request_id);
 
