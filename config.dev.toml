@@ -11,9 +11,10 @@
 # =============================================================================
 
 # Host address to bind the server to
-# - Empty string ("") means bind to all interfaces (0.0.0.0)
-# - "127.0.0.1" means bind only to localhost (recommended for development)
+# - "127.0.0.1" means bind only to localhost (default, recommended for development)
+# - Empty string ("") means bind to all interfaces (0.0.0.0) - use for Docker/external access
 # - Specific IP address for production deployments
+# - Override with APP_HOST environment variable
 host = "127.0.0.1"
 
 # Port number to listen on
@@ -83,7 +84,9 @@ cors_origins = [
 # 
 # You can override any of these values using environment variables:
 # 
-# APP_HOST=0.0.0.0
+# APP_HOST=127.0.0.1          # localhost only (default)
+# APP_HOST=""                  # all interfaces (0.0.0.0) - for Docker/external access
+# APP_HOST=0.0.0.0             # all interfaces (explicit)
 # APP_PORT=8080
 # APP_REQUEST_TIMEOUT_MS=60000
 # APP_CORS_ORIGINS='["https://production.example.com"]'

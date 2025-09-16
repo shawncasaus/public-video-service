@@ -9,7 +9,7 @@ use url::Url;
 /// defaults < config file < environment variables
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct AppConfig {
-    /// Server bind address (empty = all interfaces)
+    /// Server bind address (127.0.0.1 = localhost, "" = all interfaces)
     #[serde(default = "default_host")]
     pub host: String,
 
@@ -78,7 +78,7 @@ pub enum ConfigError {
 // ============================================================================
 
 fn default_host() -> String {
-    "".into()
+    "127.0.0.1".into()
 }
 
 fn default_port() -> u16 {
