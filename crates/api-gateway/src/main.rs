@@ -111,10 +111,19 @@ impl From<Box<dyn std::error::Error + Send + Sync>> for ServiceError {
 /// Supports hierarchical configuration: defaults < config.toml < environment variables.
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
-    // Initialize structured logging
+    // Initialize structured logging with better formatting
     tracing_subscriber::registry()
-        .with(tracing_subscriber::EnvFilter::from_default_env())
-        .with(tracing_subscriber::fmt::layer())
+        .with(
+            tracing_subscriber::EnvFilter::from_default_env()
+                .add_directive("tower_http::trace=info".parse().unwrap())
+                .add_directive("api_gateway=info".parse().unwrap())
+        )
+        .with(
+            tracing_subscriber::fmt::layer()
+                .with_target(true)
+                .with_thread_ids(true)
+                .with_thread_names(true)
+        )
         .init();
 
     // Load and validate configuration
@@ -167,20 +176,39 @@ async fn main() -> Result<(), anyhow::Error> {
         .layer(axum::middleware::from_fn(request_id_middleware))
         .layer(
             tower_http::trace::TraceLayer::new_for_http()
-                .make_span_with(DefaultMakeSpan::new().include_headers(true))
-                .on_request(DefaultOnRequest::new().level(tracing::Level::INFO))
-                .on_response(DefaultOnResponse::new().level(tracing::Level::INFO))
-                .on_failure(DefaultOnFailure::new().level(tracing::Level::ERROR))
+                .make_span_with(
+                    DefaultMakeSpan::new()
+                        .include_headers(true)
+                        .level(tracing::Level::INFO)
+                )
+                .on_request(
+                    DefaultOnRequest::new()
+                        .level(tracing::Level::INFO)
+                )
+                .on_response(
+                    DefaultOnResponse::new()
+                        .level(tracing::Level::INFO)
+                )
+                .on_failure(
+                    DefaultOnFailure::new()
+                        .level(tracing::Level::ERROR)
+                )
         )
         .layer(ServiceBuilder::new().layer(cors_layer));
 
     // Start server
     let listener = TcpListener::bind(&addr).await?;
+    let actual_addr = listener.local_addr()?;
 
-    tracing::info!("listening on http://{}", listener.local_addr()?);
-    tracing::info!("CORS origins: {:?}", cfg.cors_origins);
-    tracing::info!("Request timeout: {}ms", cfg.request_timeout_ms);
-    tracing::info!("Upstream services: {:?}", cfg.upstreams);
+    tracing::info!("🚀 API Gateway started successfully");
+    tracing::info!("📍 Listening on: http://{}", actual_addr);
+    tracing::info!("🔧 Host binding: {} ({})", 
+        if cfg.host.is_empty() { "all interfaces (0.0.0.0)" } else { &cfg.host },
+        if cfg.host.is_empty() { "external access enabled" } else { "localhost only" }
+    );
+    tracing::info!("⏱️  Request timeout: {}ms", cfg.request_timeout_ms);
+    tracing::info!("🌐 CORS origins: {:?}", cfg.cors_origins);
+    tracing::info!("🔗 Upstream services: {:?}", cfg.upstreams);
 
     axum::serve(listener, app).await?;
     Ok(())
