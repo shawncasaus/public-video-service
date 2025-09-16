@@ -10,6 +10,7 @@ use serde_json::json;
 use tokio::net::TcpListener;
 use tower::ServiceBuilder;
 use tower_http::cors::{Any, CorsLayer};
+use tower_http::trace::{DefaultMakeSpan, DefaultOnRequest, DefaultOnResponse, DefaultOnFailure};
 use tracing_subscriber::{layer::SubscriberExt, util::SubscriberInitExt};
 
 // ============================================================================
@@ -95,6 +96,12 @@ impl From<Box<dyn std::error::Error + Send + Sync>> for ServiceError {
 }
 
 // ============================================================================
+// Trace Middleware
+// ============================================================================
+
+// TraceLayer will be applied directly in the router setup
+
+// ============================================================================
 // Application Setup
 // ============================================================================
 
@@ -158,6 +165,13 @@ async fn main() -> Result<(), anyhow::Error> {
             }),
         )
         .layer(axum::middleware::from_fn(request_id_middleware))
+        .layer(
+            tower_http::trace::TraceLayer::new_for_http()
+                .make_span_with(DefaultMakeSpan::new().include_headers(true))
+                .on_request(DefaultOnRequest::new().level(tracing::Level::INFO))
+                .on_response(DefaultOnResponse::new().level(tracing::Level::INFO))
+                .on_failure(DefaultOnFailure::new().level(tracing::Level::ERROR))
+        )
         .layer(ServiceBuilder::new().layer(cors_layer));
 
     // Start server
